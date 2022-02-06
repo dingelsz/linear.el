@@ -1,22 +1,4 @@
-(load (expand-file-name  "./linear.el"))
-
-;; -----------------------------------------------------------------------------
-;; Controller
-;; -----------------------------------------------------------------------------
-(defun issues ()
-  (sort (jpath '(data (issues (nodes (priority) (title) (labels (nodes (name))))))
-	       (linear-query `(issues (nodes (priority title labels (nodes (name)))))))
-	(lambda (x y) (< (car x) (car y)))))
-
-(defun format-issue (issue)
-  (let* ((priority (nth 0 issue))
-	(title (nth 1 issue))
-	(labels (concat "[" (mapconcat #'car (nth 2 issue) "][") "]"))
-	(left-msg (format "%d - %s" priority title))
-	(right-align (- (window-width) (length left-msg) 2))
-	(fmt-template (format "%%s %%%ds\n" right-align)))
-    (format fmt-template left-msg labels)))
-
+(load (expand-file-name  "./issue.el"))
 ;; -----------------------------------------------------------------------------
 ;; View: Sections
 ;; -----------------------------------------------------------------------------
@@ -29,15 +11,16 @@
          (erase-buffer)
          (magit-section-mode)
          (magit-insert-section (demo-buffer)
-           ,@body)))))
+           ,@body))
+       (beginning-of-buffer)
+       (magit-section-forward)
+       )))
 
 (defun linear-view ()
   (with-demo-buffer
     (magit-insert-section (issues)
-      (magit-insert-heading "P - Title [tags]")
+      (magit-insert-heading (lr-format "S P - Title" "[tags+][project]" (window-width)))
       (dolist (issue (issues))
 	(magit-insert-section (issues)
-	  (insert (format-issue issue)))))))
-
-
+	  (insert (format "%s\n" (to-section issue (window-width)))))))))
 
