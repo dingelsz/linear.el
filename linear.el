@@ -26,14 +26,13 @@
 ;;  (graphql-encode '(this (is (a nested query))))
 ;;  (graphql-encode '(issue (:id "BLA-123") (nodes (id title))))
 ;; -----------------------------------------------------------------------------
-
 (defun jpath (pattern data)
   "jpath is to sexp what xpath is to xml. It is a query language for retrieving data from sexp."
   (if (null pattern) data
     (let* ((cmd (car pattern))
 	   (rst (cdr pattern))
 	   (data (cond
-		  ((symbolp cmd) (select cmd data))
+		  ((symbolp cmd) (cdr (assoc cmd data)))
 		  ((arrayp cmd) (let ((idx (aref cmd 0)))
 				  ((numberp idx) (aref data idx)))))))
       (if (null rst) data
