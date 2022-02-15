@@ -9,7 +9,7 @@
   (interactive)
   (message "Task created!"))
 
-(defun linear-create-task ()
+(defun linear-task-create ()
   (interactive)
   (let* ((title (read-from-minibuffer "Task's title: "))
 	(description (read-from-minibuffer "Task's description: "))
@@ -20,13 +20,22 @@
 	(issue (ISSUE :title title :description description :project projectId)))
     (create issue teamId)))
 
+
+(defun linear-task-delete ()
+  (interactive)
+  (let* ((is (issues))
+	 (title (ido-completing-read "Task name: " (mapcar (lambda (o) (oref o :title)) is) :REQUIRE-MATCH t))
+	 (issue (find-if (lambda (i) (string= title
+					      (oref i :title))) is)))
+    (rm issue)))
+
 ;; -----------------------------------------------------------------------------
 ;; Transient
 ;; -----------------------------------------------------------------------------
 (define-transient-command linear-transient ()
   ["Tasks"
-   ("c" "Create a new task" linear-create-task)
-   ("d" "Delete the current task" linear-delete-task)]
+   ("c" "Create a new task" linear-task-create)
+   ("d" "Delete the current task" linear-task-delete)]
   ["Display"
    ("s" "Sort by column" test-function)
    ("f" "Filter by column" test-function)])
