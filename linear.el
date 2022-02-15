@@ -1,10 +1,3 @@
-;; POST https://api.linear.app/graphql
-;; Authorization: lin_api_sjMhzwpbakT6asIZGHotggfOQ1myrWahupjlgq21
-;; Content-Type: application/json
-;; {
-;; 	"query": "mutation IssueCreate { issueCreat( input: { title: \"New exception\" teamId: \"46696a01-d887-4389-81e0-2949416563fc\" } ) { success issue { id title } } }"
-;; }
-
 ;; -----------------------------------------------------------------------------
 ;; Utils
 ;; -----------------------------------------------------------------------------
