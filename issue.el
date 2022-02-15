@@ -49,8 +49,17 @@
 	  (rhs (format "%s" (format-bracket rhs-items))))
       (lr-format lhs rhs width))))
 
+(setq LINEAR_CREATE_Q "mutation IssueCreate { issueCreate( input: { title: \\\"%s\\\" description: \\\"%s\\\" projectId: \\\"%s\\\" teamId: \\\"%s\\\" } ) { success issue { id title } } }")
+
+(cl-defmethod create ((issue ISSUE) teamID)
+  (with-slots (title description project) issue
+    (message project)
+    (linear-request (format LINEAR_CREATE_Q title description project teamID))))
+
 ;; Test
+;; (setq test-issue (ISSUE :title 'Test :tags '(("Feature") ("Improvement")) :description "hello world"))
 ;; (to-section (ISSUE :title 'Test :tags '(("Feature") ("Improvement"))) (window-width))
+;; (create test-issue "46696a01-d887-4389-81e0-2949416563fc")
 
 ;; -----------------------------------------------------------------------------
 ;; API
@@ -66,5 +75,10 @@
 ;; Tests
 ;; (issues)
 
-
-
+(defun open-issues ()
+  (let* ((jpath-query '(data (issues (nodes (description) (priority) (project (name)) (state (name)) (labels (nodes (name))) (title)))))
+	(graphql-query `(issues (nodes (project (name) priority title description state (name) labels (nodes (name))))))
+	(data (jpath jpath-query (linear-query graphql-query)))
+	(data (mapcar #'ISSUE-from-list data))
+	(data (sort data (lambda (x y) (< (oref x :priority) (oref y :priority))))))
+    data))

@@ -1,3 +1,10 @@
+;; POST https://api.linear.app/graphql
+;; Authorization: lin_api_sjMhzwpbakT6asIZGHotggfOQ1myrWahupjlgq21
+;; Content-Type: application/json
+;; {
+;; 	"query": "mutation IssueCreate { issueCreat( input: { title: \"New exception\" teamId: \"46696a01-d887-4389-81e0-2949416563fc\" } ) { success issue { id title } } }"
+;; }
+
 ;; -----------------------------------------------------------------------------
 ;; Utils
 ;; -----------------------------------------------------------------------------
@@ -16,15 +23,17 @@
   (cond
    ((listp q)
     (cond
-     ((keywordp (first q)) (format "( %s : \"%s\")" (keyword-name (first q)) (second q)))
+     ((keywordp (first q)) (format "( %s : %s)" (keyword-name (first q)) (graphql-encode (rest q))))
      (t (format "{ %s }" (mapconcat 'graphql-encode q " ")))))
    ((symbolp q) (symbol-name q))
+   ((stringp q) (format "\"%s\"" q))
    (t q)))
 
 ;; Tests
 ;;  (graphql-encode "{this {is {a nested query}}}")
 ;;  (graphql-encode '(this (is (a nested query))))
 ;;  (graphql-encode '(issue (:id "BLA-123") (nodes (id title))))
+
 ;; -----------------------------------------------------------------------------
 (defun jpath (pattern data)
   "jpath is to sexp what xpath is to xml. It is a query language for retrieving data from sexp."
@@ -66,28 +75,33 @@
 ;; -----------------------------------------------------------------------------
 ;; Graphql query
 ;; -----------------------------------------------------------------------------
-(defun linear-query (query)
-  (let ((q (graphql-encode query))
-	(result ""))
+
+(defun linear-request (graphql)
+  (let ((result ""))
     (request
       "https://api.linear.app/graphql"
       :type "POST"
       :sync t
-      :headers `(("Content-Type" . "application/json")
+      :headers `(("Content-Type" .  "application/json")
 		 ("Authorization" . ,(getenv "LINEAR_APP_KEY")))
-      :data (json-encode `(("query" . ,q)))
-      :parser 'json-read
+      :data (format "{ \"query\" : \"%s\" }" graphql)
+      :parser 'json-read ;; reads input
       :success (cl-function
 		(lambda (&key data &allow-other-keys)
 		  (setq result data)))
       :error (cl-function
-	      (lambda (&key data &allow-other-keys)
+	      (lambda (&key data response error-thrown &allow-other-keys)
 		(let ((err_msg (cdr (assoc 'message (aref (cdr (assoc 'errors data)) 0)))))
 		  (error err_msg)))))
     result))
 
+(defun linear-query (query)
+  (linear-request (graphql-encode query)))
+
 ;; Tests
-;; (linear-query '(issues (nodes (id title))))
+(linear-query '(issues (nodes (id title))))
+;;(linear-query '(teams (nodes (id name))))
+
 ;; (linear-query '(nothing))  ;; throws a useful error
 
 ;; -----------------------------------------------------------------------------
@@ -101,5 +115,39 @@
 ;; Tests
 ;; (linear-issues 'title 'priority)
 
+;; -----------------------------------------------------------------------------
+;; Teams
+;; -----------------------------------------------------------------------------
+(defun linear-teams ()
+  (jpath `(data (teams (nodes (name) (id))))
+	 (linear-query '(teams (nodes (name id))))))
 
+(defun linear-teams-names ()
+  (mapcar #'first  (linear-teams)))
+
+(defun linear-teams-id-for (name)
+  (second (assoc name (linear-teams))))
+;; Test
+;; (linear-teams)
+;; (linear-teams-names)
+;; (linear-teams-id-for (first (linear-teams-names)))
+
+;; -----------------------------------------------------------------------------
+;; Projects
+;; -----------------------------------------------------------------------------
+(defun linear-projects ()
+  (jpath '(data (projects (nodes (name) (id))))
+	    (linear-query '(projects (nodes (id name))))))
+
+(defun linear-projects-names ()
+  (mapcar #'first (linear-projects)))
+
+
+(defun linear-projects-id-for (name)
+  (second (assoc name (linear-projects))))
+
+;; Test
+;; (linear-projects)
+;; (linear-projects-names)
+;; (linear-projects-id-for (first (linear-projects-names)))
 

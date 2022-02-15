@@ -3,17 +3,33 @@
 (require 'magit-section)
 
 ;; -----------------------------------------------------------------------------
-;; Transient
+;; Transient Actions
 ;; -----------------------------------------------------------------------------
 (defun test-function ()
   (interactive)
-  (message "Test function"))
+  (message "Task created!"))
 
+(defun linear-create-task ()
+  (interactive)
+  (let* ((title (read-from-minibuffer "Task's title: "))
+	(description (read-from-minibuffer "Task's description: "))
+	(team-name (ido-completing-read "Task's team: " (linear-teams) :REQUIRE-MATCH t))
+	(teamId (linear-teams-id-for team-name))
+	(project-name (ido-completing-read "Task's project: " (linear-projects-names) :REQUIRE-MATCH t))
+	(projectId (linear-projects-id-for project-name))
+	(issue (ISSUE :title title :description description :project projectId)))
+    (create issue teamId)))
+
+;; -----------------------------------------------------------------------------
+;; Transient
+;; -----------------------------------------------------------------------------
 (define-transient-command linear-transient ()
-  "Test Transient Title"
-  ["Actions"
-   ("a" "Action a" test-function)
-   ("b" "Action a" test-function)])
+  ["Tasks"
+   ("c" "Create a new task" linear-create-task)
+   ("d" "Delete the current task" linear-delete-task)]
+  ["Display"
+   ("s" "Sort by column" test-function)
+   ("f" "Filter by column" test-function)])
 
 
 ;; -----------------------------------------------------------------------------
@@ -22,7 +38,8 @@
 (defvar linear-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "h") 'linear-transient)
-    (define-key map (kbd "q") (lambda () (interactive) (delete-window)))
+    (define-key map (kbd "q") (lambda () (interactive) (if (= 1 (length (window-list))) (kill-buffer (current-buffer))
+							   (delete-window))))
     map))
 
 (define-derived-mode linear-mode
@@ -46,6 +63,7 @@
        )))
 
 (defun linear ()
+  (interactive)
   (with-demo-buffer
     (magit-insert-section (issues)
       (magit-insert-heading (lr-format "S P - Title" "[tags+][project]" (window-width)))
